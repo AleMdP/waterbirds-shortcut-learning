@@ -9,7 +9,7 @@ class WaterbirdsDataset(Dataset):
     def __init__(self, metadata_path, data_dir, split='train', transform=None):
         """
         Waterbirds PyTorch Dataset based on Sagawa et al. (2020)
-        Official splits in metadata.csv: 0 -> train, 1 -> val, 2 -> test
+        splits: 'train', 'val' (0), 'test' (1)
         """
         self.data_dir = data_dir
         self.transform = transform
@@ -17,7 +17,7 @@ class WaterbirdsDataset(Dataset):
         # Load metadata
         df = pd.read_csv(metadata_path)
         
-        # Split mapping: 'train' -> 0, 'val' -> 1, 'test' -> 2
+        # Official splits mapping in metadata.csv: 0 -> train, 1 -> val, 2 -> test
         split_map = {'train': 0, 'val': 1, 'test': 2}
         if isinstance(split, str):
             split_code = split_map[split]
@@ -26,9 +26,9 @@ class WaterbirdsDataset(Dataset):
             
         self.df = df[df['split'] == split_code].reset_index(drop=True)
         
-        # Extract ground truth y (0: landbird, 1: waterbird) and place (0: land, 1: water)
+        # Get tags: y (bird class), a (background)
         self.y_array = self.df['y'].values
-        self.place_array = self.df['place'].values  # 0: Land background, 1: Water background
+        self.place_array = self.df['place'].values  # 0: Land, 1: Water
         self.filename_array = self.df['img_filename'].values
         
         # Calculate subgroup ID (0 to 3)
@@ -51,7 +51,7 @@ class WaterbirdsDataset(Dataset):
         return image, y, group
 
 def get_waterbirds_transforms():
-    """Standard ImageNet preprocessing transforms for ResNet-50"""
+    """Standar transformations for ResNet-50"""
     train_transform = transforms.Compose([
         transforms.RandomResizedCrop(224, scale=(0.7, 1.0)),
         transforms.RandomHorizontalFlip(),
