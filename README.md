@@ -2,6 +2,11 @@
 
 waterbirds-shortcut-learning/  
 ├── data/                      # Local/Gorina4 dataset (Ignored by Git)  
+│   └── waterbird_complete95_forest2water2/  
+│       ├── metadata.csv  
+│       ├── 001.Black_footed_Albatross/  
+│       ├── 002.Laysan_Albatross/  
+│       └── ... (200 carpetas de especies)  
 ├── src/  
 │   ├── dataset.py             # Waterbirds PyTorch Dataset & DataLoader  
 │   ├── models.py              # ResNet-50 & custom heads  
