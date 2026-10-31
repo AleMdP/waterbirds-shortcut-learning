@@ -218,3 +218,25 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Dataset directories and archives
+data/
+*.tar.gz
+*.zip
+*.tgz
+waterbird_complete*
+
+# Model Checkpoints, Trained Weights, and Outputs
+*.pth
+*.pt
+*.onnx
+*.bin
+checkpoints/
+models/saved_models/
+runs/
+logs/
+wandb/
+
+# OS and System Junk Files
+.DS_Store
+Thumbs.db
