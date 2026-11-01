@@ -3,9 +3,11 @@
 waterbirds-shortcut-learning/  
 ├── reports/  
 │   └── figures/  
+│       └── eda_group_distribution.png  
 ├── data/                      # Excluded from Git (.gitignore)  
 │   └── waterbird_complete95_forest222/  
 ├── results/  
+│   └── erm_baseline_results.json  
 ├── src/  
 │   ├── dataset.py             # Waterbirds PyTorch Dataset & DataLoader  
 │   ├── models.py              # ResNet-50 & custom heads  
