@@ -32,6 +32,9 @@ def train_epoch(model, dataloader, optimizer, group_weights, device):
     model.train()
     logger = GroupLogger()
     
+    # Ensure group_weights is on the target device
+    group_weights = group_weights.to(device)
+    
     for images, targets, groups in dataloader:
         images, targets, groups = images.to(device), targets.to(device), groups.to(device)
         
@@ -42,7 +45,7 @@ def train_epoch(model, dataloader, optimizer, group_weights, device):
         raw_loss = nn.CrossEntropyLoss(reduction="none")(outputs, targets)
         
         # Multiply each sample loss by its corresponding subgroup weight
-        sample_weights = group_weights[groups].to(device)
+        sample_weights = group_weights[groups]
         loss = (raw_loss * sample_weights).mean()
         
         loss.backward()
