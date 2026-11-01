@@ -1,6 +1,8 @@
 # waterbirds-shortcut-learning
 
 waterbirds-shortcut-learning/  
+├── reports/  
+│   └── figures/  
 ├── data/                      # Excluded from Git (.gitignore)  
 │   └── waterbird_complete95_forest222/  
 ├── src/  
