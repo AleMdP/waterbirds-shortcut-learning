@@ -1,0 +1,13 @@
+{
+    "avg_acc": 0.8755609393119812,
+    "worst_group_acc": 0.84112149477005,
+    "worst_group_id": 2,
+    "group_0_acc": 0.9144124388694763,
+    "group_1_acc": 0.84611976146698,
+    "group_2_acc": 0.84112149477005,
+    "group_3_acc": 0.8769470453262329,
+    "group_0_count": 2255,
+    "group_1_count": 2255,
+    "group_2_count": 642,
+    "group_3_count": 642
+}
