@@ -5,6 +5,7 @@ waterbirds-shortcut-learning/
 │   └── figures/  
 ├── data/                      # Excluded from Git (.gitignore)  
 │   └── waterbird_complete95_forest222/  
+├── results/  
 ├── src/  
 │   ├── dataset.py             # Waterbirds PyTorch Dataset & DataLoader  
 │   ├── models.py              # ResNet-50 & custom heads  
