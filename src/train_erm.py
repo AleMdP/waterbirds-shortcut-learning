@@ -1,4 +1,5 @@
 import os
+import json
 
 # FORCE GPU 1 ASSIGNMENT BEFORE LOADING TORCH
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
@@ -90,6 +91,16 @@ def main():
     print(f"Test Worst-Group Accuracy: {test_metrics['worst_group_acc']:.4f} (Group {test_metrics['worst_group_id']})")
     for g in range(4):
         print(f"  - Group {g} Acc: {test_metrics[f'group_{g}_acc']:.4f} (Count: {test_metrics[f'group_{g}_count']})")
+
+    # Save test results to a JSON file
+    os.makedirs("results", exist_ok=True)
+    results_path = os.path.join("results", "erm_baseline_results.json")
+    
+    with open(results_path, "w") as f:
+        json.dump(test_metrics, f, indent=4)
+        
+    print(f"\nTest metrics successfully saved to {results_path}")
+
 
 if __name__ == "__main__":
     main()
