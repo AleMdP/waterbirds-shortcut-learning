@@ -12,10 +12,10 @@ waterbirds-shortcut-learning/
 │       ├── erm_vs_reweighted_comparison.png  
 │       ├── erm_per_group_loss_curves.png  
 │       └── reweighted_per_group_loss_curves.png  
-├── results/
-│   ├── erm_baseline_results.json
-│   ├── erm_history.json
-│   ├── reweighted_results.json
+├── results/  
+│   ├── erm_baseline_results.json  
+│   ├── erm_history.json  
+│   ├── reweighted_results.json  
 │   └── reweighted_history.json  
 ├── scripts/  
 │   ├── eda.py  
