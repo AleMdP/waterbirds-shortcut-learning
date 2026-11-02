@@ -1,33 +1,37 @@
 import os
-import json
 
 # FORCE GPU 1 ASSIGNMENT BEFORE LOADING TORCH
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
+import json
 import argparse
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
-from torchvision.models import resnet50, ResNet50_Weights
 
 from dataset import WaterbirdsDataset, get_waterbirds_transforms
+from models import get_waterbirds_model
 from utils import GroupLogger
 
-def train_epoch(model, dataloader, optimizer, criterion, device):
+def train_epoch(model, dataloader, optimizer, device):
     model.train()
     logger = GroupLogger()
+    criterion = nn.CrossEntropyLoss(reduction="none")
     
     for images, targets, groups in dataloader:
         images, targets, groups = images.to(device), targets.to(device), groups.to(device)
         
         optimizer.zero_grad()
         outputs = model(images)
-        loss = criterion(outputs, targets)
+        
+        raw_loss = criterion(outputs, targets)
+        loss = raw_loss.mean()
+        
         loss.backward()
         optimizer.step()
         
-        logger.update(outputs, targets, groups)
+        logger.update(outputs, targets, groups, raw_losses=raw_loss)
         
     return logger.get_metrics()
 
@@ -44,12 +48,12 @@ def evaluate(model, dataloader, device):
     return logger.get_metrics()
 
 def main():
-    parser = argparse.ArgumentParser(description="Train ERM Baseline on Waterbirds")
-    parser.add_argument("--data_dir", type=str, default="data/waterbird_complete95_forest2water2", help="Path to extracted dataset")
-    parser.add_argument("--batch_size", type=int, default=32, help="Batch size")
-    parser.add_argument("--epochs", type=int, default=10, help="Number of epochs")
-    parser.add_argument("--lr", type=float, default=1e-4, help="Learning rate")
-    parser.add_argument("--weight_decay", type=float, default=1e-4, help="Weight decay")
+    parser = argparse.ArgumentParser(description="Train Baseline ERM Model on Waterbirds")
+    parser.add_argument("--data_dir", type=str, default="data/waterbird_complete95_forest2water2")
+    parser.add_argument("--batch_size", type=int, default=32)
+    parser.add_argument("--epochs", type=int, default=3)
+    parser.add_argument("--lr", type=float, default=1e-4)
+    parser.add_argument("--weight_decay", type=float, default=1e-4)
     args = parser.parse_args()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -68,19 +72,19 @@ def main():
     val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, num_workers=4, pin_memory=True)
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, num_workers=4, pin_memory=True)
 
-    # Initialize Pretrained ResNet-50
-    model = resnet50(weights=ResNet50_Weights.DEFAULT)
-    model.fc = nn.Linear(model.fc.in_features, 2)
-    model = model.to(device)
-
-    criterion = nn.CrossEntropyLoss()
+    model = get_waterbirds_model(num_classes=2, pretrained=True).to(device)
     optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, weight_decay=args.weight_decay)
+
+    history = []
 
     print("\n--- Starting ERM Training ---")
     for epoch in range(1, args.epochs + 1):
-        train_metrics = train_epoch(model, train_loader, optimizer, criterion, device)
+        train_metrics = train_epoch(model, train_loader, optimizer, device)
         val_metrics = evaluate(model, val_loader, device)
         
+        train_metrics["epoch"] = epoch
+        history.append(train_metrics)
+
         print(f"Epoch [{epoch}/{args.epochs}]")
         print(f"  Train -> Avg Acc: {train_metrics['avg_acc']:.4f} | Worst-Group Acc: {train_metrics['worst_group_acc']:.4f}")
         print(f"  Val   -> Avg Acc: {val_metrics['avg_acc']:.4f} | Worst-Group Acc: {val_metrics['worst_group_acc']:.4f}")
@@ -92,15 +96,16 @@ def main():
     for g in range(4):
         print(f"  - Group {g} Acc: {test_metrics[f'group_{g}_acc']:.4f} (Count: {test_metrics[f'group_{g}_count']})")
 
-    # Save test results to a JSON file
     os.makedirs("results", exist_ok=True)
-    results_path = os.path.join("results", "erm_baseline_results.json")
     
-    with open(results_path, "w") as f:
+    with open("results/erm_baseline_results.json", "w") as f:
         json.dump(test_metrics, f, indent=4)
         
-    print(f"\nTest metrics successfully saved to {results_path}")
-
+    with open("results/erm_history.json", "w") as f:
+        json.dump(history, f, indent=4)
+        
+    print("\nTest metrics saved to results/erm_baseline_results.json")
+    print("Training history saved to results/erm_history.json")
 
 if __name__ == "__main__":
     main()

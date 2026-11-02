@@ -15,10 +15,6 @@ from models import get_waterbirds_model
 from utils import GroupLogger
 
 def compute_group_weights(dataset, num_groups=4):
-    """
-    Computes loss weights inversely proportional to subgroup sample counts:
-    w_g = N_total / (num_groups * N_g)
-    """
     group_counts = torch.zeros(num_groups)
     for idx in range(len(dataset)):
         _, _, g = dataset[idx]
@@ -31,9 +27,8 @@ def compute_group_weights(dataset, num_groups=4):
 def train_epoch(model, dataloader, optimizer, group_weights, device):
     model.train()
     logger = GroupLogger()
-    
-    # Ensure group_weights is on the target device
     group_weights = group_weights.to(device)
+    criterion = nn.CrossEntropyLoss(reduction="none")
     
     for images, targets, groups in dataloader:
         images, targets, groups = images.to(device), targets.to(device), groups.to(device)
@@ -41,17 +36,14 @@ def train_epoch(model, dataloader, optimizer, group_weights, device):
         optimizer.zero_grad()
         outputs = model(images)
         
-        # Calculate raw element-wise CrossEntropyLoss
-        raw_loss = nn.CrossEntropyLoss(reduction="none")(outputs, targets)
-        
-        # Multiply each sample loss by its corresponding subgroup weight
+        raw_loss = criterion(outputs, targets)
         sample_weights = group_weights[groups]
         loss = (raw_loss * sample_weights).mean()
         
         loss.backward()
         optimizer.step()
         
-        logger.update(outputs, targets, groups)
+        logger.update(outputs, targets, groups, raw_losses=raw_loss)
         
     return logger.get_metrics()
 
@@ -71,7 +63,7 @@ def main():
     parser = argparse.ArgumentParser(description="Train Group-Reweighted Baseline on Waterbirds")
     parser.add_argument("--data_dir", type=str, default="data/waterbird_complete95_forest2water2")
     parser.add_argument("--batch_size", type=int, default=32)
-    parser.add_argument("--epochs", type=int, default=10)
+    parser.add_argument("--epochs", type=int, default=3)
     parser.add_argument("--lr", type=float, default=1e-4)
     parser.add_argument("--weight_decay", type=float, default=1e-4)
     args = parser.parse_args()
@@ -97,11 +89,16 @@ def main():
     model = get_waterbirds_model(num_classes=2, pretrained=True).to(device)
     optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, weight_decay=args.weight_decay)
 
+    history = []
+
     print("\n--- Starting Group-Reweighted Training ---")
     for epoch in range(1, args.epochs + 1):
         train_metrics = train_epoch(model, train_loader, optimizer, group_weights, device)
         val_metrics = evaluate(model, val_loader, device)
         
+        train_metrics["epoch"] = epoch
+        history.append(train_metrics)
+
         print(f"Epoch [{epoch}/{args.epochs}]")
         print(f"  Train -> Avg Acc: {train_metrics['avg_acc']:.4f} | Worst-Group Acc: {train_metrics['worst_group_acc']:.4f}")
         print(f"  Val   -> Avg Acc: {val_metrics['avg_acc']:.4f} | Worst-Group Acc: {val_metrics['worst_group_acc']:.4f}")
@@ -111,7 +108,6 @@ def main():
     print(f"Test Avg Accuracy:         {test_metrics['avg_acc']:.4f}")
     print(f"Test Worst-Group Accuracy: {test_metrics['worst_group_acc']:.4f} (Group {test_metrics['worst_group_id']})")
 
-    # Save model weights and test metrics
     os.makedirs("results", exist_ok=True)
     os.makedirs("checkpoints", exist_ok=True)
     
@@ -119,8 +115,12 @@ def main():
     
     with open("results/reweighted_results.json", "w") as f:
         json.dump(test_metrics, f, indent=4)
+
+    with open("results/reweighted_history.json", "w") as f:
+        json.dump(history, f, indent=4)
         
-    print("Test metrics successfully saved to results/reweighted_results.json")
+    print("\nTest metrics saved to results/reweighted_results.json")
+    print("Training history saved to results/reweighted_history.json")
 
 if __name__ == "__main__":
     main()
