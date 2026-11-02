@@ -14,22 +14,6 @@ from dataset import WaterbirdsDataset, get_waterbirds_transforms
 from models import get_waterbirds_model
 from utils import GroupLogger
 
-import os
-
-# FORCE GPU 1 ASSIGNMENT BEFORE LOADING TORCH
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
-
-import json
-import argparse
-import torch
-import torch.nn as nn
-import torch.optim as optim
-from torch.utils.data import DataLoader
-
-from dataset import WaterbirdsDataset, get_waterbirds_transforms
-from models import get_waterbirds_model
-from utils import GroupLogger
-
 # Inside src/loss.py
 import torch
 import torch.nn as nn
