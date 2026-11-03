@@ -1,0 +1,29 @@
+{
+    "avg_acc": 0.778391420841217,
+    "worst_group_acc": 0.0,
+    "worst_group_id": 2,
+    "group_0_acc": 1.0,
+    "group_0_count": 2255,
+    "group_1_acc": 1.0,
+    "group_1_count": 2255,
+    "group_2_acc": 0.0,
+    "group_2_count": 642,
+    "group_3_acc": 0.0,
+    "group_3_count": 642,
+    "group_0_loss": 0.07558988034725189,
+    "group_1_loss": 0.15768469870090485,
+    "group_2_loss": 2.1090660095214844,
+    "group_3_loss": 1.4608126878738403,
+    "hyperparameters": {
+        "method": "group_dro",
+        "data_dir": "data/waterbird_complete95_forest2water2",
+        "batch_size": 32,
+        "epochs": 3,
+        "lr": 0.0001,
+        "weight_decay": 0.1,
+        "eta": 0.01,
+        "adj_coeff": 2.0,
+        "balanced_sampler": true,
+        "exp_name": "dro_adj_2.0_wd_1e-1"
+    }
+}

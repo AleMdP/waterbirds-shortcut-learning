@@ -1,0 +1,80 @@
+[
+    {
+        "avg_acc": 0.5295099020004272,
+        "worst_group_acc": 0.20665499567985535,
+        "worst_group_id": 2,
+        "group_0_acc": 0.7888249754905701,
+        "group_0_count": 1217,
+        "group_1_acc": 0.7320977449417114,
+        "group_1_count": 1187,
+        "group_2_acc": 0.20665499567985535,
+        "group_2_count": 1142,
+        "group_3_acc": 0.37950360774993896,
+        "group_3_count": 1249,
+        "group_0_loss": 0.5491037368774414,
+        "group_1_loss": 0.5909478068351746,
+        "group_2_loss": 0.8528150320053101,
+        "group_3_loss": 0.7586446404457092,
+        "q_weights": [
+            0.8506,
+            0.0176,
+            0.0153,
+            0.1166
+        ],
+        "epoch": 1,
+        "val_avg_acc": 0.7789824604988098,
+        "val_worst_group_acc": 0.0
+    },
+    {
+        "avg_acc": 0.49947863817214966,
+        "worst_group_acc": 0.0,
+        "worst_group_id": 2,
+        "group_0_acc": 1.0,
+        "group_0_count": 1172,
+        "group_1_acc": 0.9991823434829712,
+        "group_1_count": 1223,
+        "group_2_acc": 0.0,
+        "group_2_count": 1255,
+        "group_3_acc": 0.0008733624708838761,
+        "group_3_count": 1145,
+        "group_0_loss": 0.17801229655742645,
+        "group_1_loss": 0.2639402449131012,
+        "group_2_loss": 1.544569492340088,
+        "group_3_loss": 1.2352737188339233,
+        "q_weights": [
+            0.9368,
+            0.0004,
+            0.0015,
+            0.0612
+        ],
+        "epoch": 2,
+        "val_avg_acc": 0.7781484723091125,
+        "val_worst_group_acc": 0.0
+    },
+    {
+        "avg_acc": 0.5013555884361267,
+        "worst_group_acc": 0.0,
+        "worst_group_id": 2,
+        "group_0_acc": 1.0,
+        "group_0_count": 1198,
+        "group_1_acc": 1.0,
+        "group_1_count": 1203,
+        "group_2_acc": 0.0,
+        "group_2_count": 1213,
+        "group_3_acc": 0.0025402200408279896,
+        "group_3_count": 1181,
+        "group_0_loss": 0.0853029191493988,
+        "group_1_loss": 0.16283467411994934,
+        "group_2_loss": 2.103074550628662,
+        "group_3_loss": 1.4713611602783203,
+        "q_weights": [
+            0.9513,
+            0.0,
+            0.0004,
+            0.0484
+        ],
+        "epoch": 3,
+        "val_avg_acc": 0.7781484723091125,
+        "val_worst_group_acc": 0.0
+    }
+]
