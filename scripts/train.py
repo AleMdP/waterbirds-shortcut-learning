@@ -21,27 +21,25 @@ from src.models import get_waterbirds_model
 from src.utils import GroupLogger
 from src.loss import GroupDROLoss
 
-def compute_group_weights(dataset, num_groups=4):
-    group_counts = torch.zeros(num_groups)
-    for idx in range(len(dataset)):
-        _, _, g = dataset[idx]
-        group_counts[g] += 1
-        
-    total_samples = len(dataset)
-    weights = total_samples / (num_groups * group_counts)
-    return weights
-
-def build_balanced_sampler(dataset, num_groups=4):
+def get_group_info(dataset, num_groups=4):
     group_counts = torch.zeros(num_groups)
     all_groups = torch.zeros(len(dataset), dtype=torch.long)
+    
+    # Loop through dataset once to get both counts and each sample's group ID
     for idx in range(len(dataset)):
         _, _, g = dataset[idx]
         group_counts[g] += 1
         all_groups[idx] = g
-
+        
+    # 1. Weights per group (length 4) -> used by Re-weighting loss
+    total_samples = len(dataset)
+    group_weights = total_samples / (num_groups * group_counts)
+    
+    # 2. Weights per sample (length 4,795) -> used by WeightedRandomSampler
     weight_per_group = 1.0 / group_counts
     sample_weights = weight_per_group[all_groups]
-    return WeightedRandomSampler(weights=sample_weights, num_samples=len(dataset), replacement=True)
+    
+    return group_counts, group_weights, sample_weights
 
 def train_epoch(model, dataloader, optimizer, method, device, group_weights=None, dro_criterion=None):
     model.train()
@@ -101,6 +99,7 @@ def main():
     parser.add_argument("--lr", type=float, default=1e-4)
     parser.add_argument("--weight_decay", type=float, default=1e-4)
     parser.add_argument("--eta", type=float, default=0.01, help="Group DRO exponentiated gradient step size")
+    parser.add_argument("--adj_coeff", type=float, default=0.0, help="Group DRO generalization adjustment C")
     parser.add_argument("--balanced_sampler", action="store_true", help="Use WeightedRandomSampler for balanced batches")
     parser.add_argument("--exp_name", type=str, default=None, help="Custom suffix for saving results/checkpoints")
     args = parser.parse_args()
@@ -115,10 +114,10 @@ def main():
     val_dataset = WaterbirdsDataset(metadata_path, args.data_dir, split="val", transform=eval_tf)
     test_dataset = WaterbirdsDataset(metadata_path, args.data_dir, split="test", transform=eval_tf)
 
-    group_weights = compute_group_weights(train_dataset)
+    group_weights, group_counts, sample_weights = get_group_info(train_dataset)
 
     if args.balanced_sampler:
-        sampler = build_balanced_sampler(train_dataset)
+        sampler = WeightedRandomSampler(weights=sample_weights, num_samples=len(train_dataset), replacement=True)
         train_loader = DataLoader(train_dataset, batch_size=args.batch_size, sampler=sampler, num_workers=4, pin_memory=True)
     else:
         train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=4, pin_memory=True)
@@ -134,6 +133,8 @@ def main():
         dro_criterion = GroupDROLoss(
             num_groups=4,
             eta=args.eta,
+            group_counts=group_counts,
+            adj_coeff=args.adj_coeff,
             device=device
         )
 
