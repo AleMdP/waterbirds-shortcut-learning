@@ -1,4 +1,6 @@
 import os
+
+# FORCE GPU 1 ASSIGNMENT BEFORE LOADING TORCH
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 import sys
@@ -9,13 +11,15 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, WeightedRandomSampler
 
-# Allow importing from src/ when running from repo root
-#sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+# Add root project directory to Python path so `src` modules load seamlessly
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
 
-from dataset import WaterbirdsDataset, get_waterbirds_transforms
-from models import get_waterbirds_model
-from utils import GroupLogger
-from loss import GroupDROLoss
+from src.dataset import WaterbirdsDataset, get_waterbirds_transforms
+from src.models import get_waterbirds_model
+from src.utils import GroupLogger
+from src.loss import GroupDROLoss
 
 def compute_group_weights(dataset, num_groups=4):
     group_counts = torch.zeros(num_groups)

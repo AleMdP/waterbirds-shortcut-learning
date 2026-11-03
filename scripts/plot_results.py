@@ -7,31 +7,24 @@ import pandas as pd
 def main():
     os.makedirs("reports/figures", exist_ok=True)
     
-    # Load JSON metrics
-    erm_path = "results/erm_baseline_results.json"
-    reweighted_path = "results/reweighted_results.json"
+    files = {
+        "Standard ERM": "results/erm_baseline_results.json",
+        "Group-Reweighted": "results/reweighted_results.json",
+        "Group DRO (Balanced)": "results/group_dro_results.json",
+        "Group DRO (Unbalanced)": "results/group_dro_unbalanced_results.json"
+    }
     
-    if not os.path.exists(erm_path) or not os.path.exists(reweighted_path):
-        raise FileNotFoundError("Missing result JSON files in results/ directory.")
-        
-    with open(erm_path, "r") as f:
-        erm_data = json.load(f)
-        
-    with open(reweighted_path, "r") as f:
-        reweighted_data = json.load(f)
+    plot_data = []
+    for method_name, path in files.items():
+        if os.path.exists(path):
+            with open(path, "r") as f:
+                data = json.load(f)
+            plot_data.append({"Method": method_name, "Metric": "Average Accuracy", "Accuracy": data["avg_acc"] * 100})
+            plot_data.append({"Method": method_name, "Metric": "Worst-Group Accuracy", "Accuracy": data["worst_group_acc"] * 100})
 
-    # Prepare DataFrame for plotting
-    plot_data = [
-        {"Method": "Standard ERM", "Metric": "Average Accuracy", "Accuracy": erm_data["avg_acc"] * 100},
-        {"Method": "Standard ERM", "Metric": "Worst-Group Accuracy", "Accuracy": erm_data["worst_group_acc"] * 100},
-        {"Method": "Group-Reweighted", "Metric": "Average Accuracy", "Accuracy": reweighted_data["avg_acc"] * 100},
-        {"Method": "Group-Reweighted", "Metric": "Worst-Group Accuracy", "Accuracy": reweighted_data["worst_group_acc"] * 100},
-    ]
-    
     df = pd.DataFrame(plot_data)
 
-    # Generate Bar Chart Comparison
-    plt.figure(figsize=(8, 6))
+    plt.figure(figsize=(10, 6))
     sns.set_theme(style="whitegrid")
     
     ax = sns.barplot(
@@ -42,23 +35,23 @@ def main():
         palette=["#2b5c8f", "#d95f02"]
     )
     
-    plt.title("ERM vs. Group-Reweighted Performance Comparison", fontsize=14, fontweight="bold")
+    plt.title("Waterbirds: Model Mitigation Benchmark Comparison", fontsize=14, fontweight="bold")
     plt.ylabel("Accuracy (%)", fontsize=12)
-    plt.ylim(0, 100)
+    plt.ylim(0, 105)
+    plt.xticks(rotation=15)
     
-    # Add numerical labels above bars
     for p in ax.patches:
         height = p.get_height()
         if height > 0:
-            ax.annotate(f"{height:.2f}%",
+            ax.annotate(f"{height:.1f}%",
                         (p.get_x() + p.get_width() / 2., height),
-                        ha='center', va='bottom', fontsize=10, fontweight="bold",
+                        ha='center', va='bottom', fontsize=9, fontweight="bold",
                         xytext=(0, 3), textcoords='offset points')
 
     plt.tight_layout()
-    output_path = "reports/figures/erm_vs_reweighted_comparison.png"
+    output_path = "reports/figures/all_methods_comparison.png"
     plt.savefig(output_path, dpi=300)
-    print(f"Comparison figure saved to {output_path}")
+    print(f"Updated 3-method comparison plot saved to {output_path}")
 
 if __name__ == "__main__":
     main()
