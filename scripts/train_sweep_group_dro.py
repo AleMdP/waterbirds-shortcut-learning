@@ -1,80 +1,69 @@
+# scripts/train_all.py
 import os
-import sys
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+
 import json
-import subprocess
+import torch
+from train import prepare_data_bundle, run_experiment
 
 def main():
-    # Hyperparameter sweep focused on Group DRO (with Balanced Sampler)
-    sweeps = [
-        # 1. Step size (eta) sweep
-        {"method": "group_dro", "eta": 0.001, "wd": 1e-4, "adj": 0.0, "lr": 1e-4, "name": "dro_eta_0.001"},
-        {"method": "group_dro", "eta": 0.01,  "wd": 1e-4, "adj": 0.0, "lr": 1e-4, "name": "dro_eta_0.01_base"},
-        {"method": "group_dro", "eta": 0.1,   "wd": 1e-4, "adj": 0.0, "lr": 1e-4, "name": "dro_eta_0.1"},
-        {"method": "group_dro", "eta": 1.0,   "wd": 1e-4, "adj": 0.0, "lr": 1e-4, "name": "dro_eta_1.0"},
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Initializing shared GPU & Data Bundle once on {device}...")
+    data_bundle = prepare_data_bundle("data/waterbird_complete95_forest2water2")
 
-        # 2. Strong Weight Decay sweep (Sagawa et al. key finding)
-        {"method": "group_dro", "eta": 0.01,  "wd": 1e-2, "adj": 0.0, "lr": 1e-4, "name": "dro_wd_1e-2"},
-        {"method": "group_dro", "eta": 0.01,  "wd": 1e-1, "adj": 0.0, "lr": 1e-4, "name": "dro_wd_1e-1"},
-        {"method": "group_dro", "eta": 0.01,  "wd": 1.0,  "adj": 0.0, "lr": 1e-4, "name": "dro_wd_1.0"},
-
-        # 3. Group-Size Generalization Adjustment (C / sqrt(n_g)) + Strong WD
-        {"method": "group_dro", "eta": 0.01,  "wd": 1e-2, "adj": 2.0, "lr": 1e-4, "name": "dro_adj_2.0_wd_1e-2"},
-        {"method": "group_dro", "eta": 0.01,  "wd": 1e-1, "adj": 2.0, "lr": 1e-4, "name": "dro_adj_2.0_wd_1e-1"},
-        {"method": "group_dro", "eta": 0.01,  "wd": 1e-3, "adj": 1.0, "lr": 1e-3, "name": "dro_lr_1e-3_wd_1e-3_adj_1"},
+    # Add any ablation or hyperparameter sweep configurations here!
+    experiments = [
+        # 1. Step size (eta) sweep on Group DRO + Balanced Sampler
+        {"method": "group_dro", "balanced_sampler": True, "eta": 0.001, "weight_decay": 1e-4, "adj_coeff": 0.0, "exp_name": "dro_eta_0.001"},
+        {"method": "group_dro", "balanced_sampler": True, "eta": 0.05,  "weight_decay": 1e-4, "adj_coeff": 0.0, "exp_name": "dro_eta_0.05"},
+        {"method": "group_dro", "balanced_sampler": True, "eta": 0.01,  "weight_decay": 1e-4, "adj_coeff": 0.0, "exp_name": "dro_eta_0.01"},
+        {"method": "group_dro", "balanced_sampler": True, "eta": 0.1,   "weight_decay": 1e-4, "adj_coeff": 0.0, "exp_name": "dro_eta_0.1"},
+        {"method": "group_dro", "balanced_sampler": True, "eta": 0.5,   "weight_decay": 1e-4, "adj_coeff": 0.0, "exp_name": "dro_eta_0.5"},
+        {"method": "group_dro", "balanced_sampler": True, "eta": 1.0,   "weight_decay": 1e-4, "adj_coeff": 0.0, "exp_name": "dro_eta_1.0"},
+        
+        # 2. Weight decay sweep (Sagawa et al. regularization test)
+        {"method": "group_dro", "balanced_sampler": True, "eta": 0.01,  "weight_decay": 1e-3, "adj_coeff": 0.0, "exp_name": "dro_wd_1e-3"},
+        {"method": "group_dro", "balanced_sampler": True, "eta": 0.01,  "weight_decay": 1e-2, "adj_coeff": 0.0, "exp_name": "dro_wd_1e-2"},
+        {"method": "group_dro", "balanced_sampler": True, "eta": 0.01,  "weight_decay": 1e-1, "adj_coeff": 0.0, "exp_name": "dro_wd_1e-1"},
+        
+        # 3. Generalization adjustment (C / sqrt(n_g)) sweep
+        {"method": "group_dro", "balanced_sampler": True, "eta": 0.01,  "weight_decay": 1e-2, "adj_coeff": 1.0, "exp_name": "dro_adj_1_wd_1e-2"},
+        {"method": "group_dro", "balanced_sampler": True, "eta": 0.01,  "weight_decay": 1e-1, "adj_coeff": 1.0, "exp_name": "dro_adj_1_wd_1e-1"},
+        {"method": "group_dro", "balanced_sampler": True, "eta": 0.01,  "weight_decay": 1e-2, "adj_coeff": 2.0, "exp_name": "dro_adj_2_wd_1e-2"},
+        {"method": "group_dro", "balanced_sampler": True, "eta": 0.01,  "weight_decay": 1e-1, "adj_coeff": 2.0, "exp_name": "dro_adj_2_wd_1e-1"},
+        {"method": "group_dro", "balanced_sampler": True, "eta": 0.01,  "weight_decay": 1e-3, "adj_coeff": 1.0, "learning_rate": 1e-3, "exp_name": "dro_adj_1_wd_1e-3_lr_1e-3"},
     ]
 
-    train_script = os.path.join(os.path.dirname(__file__), "train.py")
+    summary_results = {}
+    for exp in experiments:
+        metrics = run_experiment(
+            data_bundle=data_bundle,
+            device=device,
+            epochs=3,
+            lr=1e-4,
+            **exp
+        )
+        summary_results[exp["exp_name"]] = metrics
 
-    for idx, cfg in enumerate(sweeps, 1):
-        print(f"\n>>> Running Sweep [{idx}/{len(sweeps)}]: {cfg['name']} <<<")
-        cmd = [
-            sys.executable, train_script,
-            "--method", cfg["method"],
-            "--balanced_sampler",
-            "--epochs", "3",
-            "--lr", str(cfg["lr"]),
-            "--weight_decay", str(cfg["wd"]),
-            "--eta", str(cfg["eta"]),
-            "--adj_coeff", str(cfg["adj"]),
-            "--exp_name", cfg["name"]
-        ]
-        subprocess.run(cmd, check=True)
-
-    print("\n" + "=" * 95)
-    print("HYPERPARAMETER SWEEP RESULTS (SORTED BY WORST-GROUP ACCURACY)")
-    print("=" * 95)
-    print(f"| {'Sweep Run':<26} | {'Eta':>5} | {'WD':>6} | {'Adj':>4} | {'Avg Acc':>8} | {'Worst Acc':>9} | {'G0':>6} | {'G1':>6} | {'G2':>6} | {'G3':>6} |")
-    print("|" + "-"*28 + "|" + "-"*7 + "|" + "-"*8 + "|" + "-"*6 + "|" + "-"*10 + "|" + "-"*11 + "|" + "-"*8 + "|" + "-"*8 + "|" + "-"*8 + "|" + "-"*8 + "|")
-
-    rows = []
-    for cfg in sweeps:
-        res_path = os.path.join("results", f"{cfg['name']}_results.json")
-        if os.path.exists(res_path):
-            with open(res_path, "r") as f:
-                m = json.load(f)
-            rows.append((cfg, m))
-
-    # Sort best worst-group accuracy first
-    rows.sort(key=lambda x: x[1]["worst_group_acc"], reverse=True)
-
-    sweep_summary = {}
-    for cfg, m in rows:
-        sweep_summary[cfg["name"]] = m
+    # Print sorted Markdown table
+    print("\n" + "=" * 85)
+    print(f"| {'Experiment':<22} | {'Avg Acc':>8} | {'Worst Acc':>9} | {'G0 (L/L)':>8} | {'G1 (L/W)':>8} | {'G2 (W/L)':>8} | {'G3 (W/W)':>8} |")
+    print("|" + "-"*24 + "|" + "-"*10 + "|" + "-"*11 + "|" + "-"*10 + "|" + "-"*10 + "|" + "-"*10 + "|" + "-"*10 + "|")
+    
+    sorted_exps = sorted(summary_results.items(), key=lambda x: x[1]["worst_group_acc"], reverse=True)
+    for name, m in sorted_exps:
         print(
-            f"| {cfg['name']:<26} "
-            f"| {cfg['eta']:>5} "
-            f"| {cfg['wd']:>6} "
-            f"| {cfg['adj']:>4} "
+            f"| {name:<22} "
             f"| {m['avg_acc']*100:>7.2f}% "
             f"| {m['worst_group_acc']*100:>8.2f}% "
-            f"| {m['group_0_acc']*100:>5.1f}% "
-            f"| {m['group_1_acc']*100:>5.1f}% "
-            f"| {m['group_2_acc']*100:>5.1f}% "
-            f"| {m['group_3_acc']*100:>5.1f}% |"
+            f"| {m['group_0_acc']*100:>7.2f}% "
+            f"| {m['group_1_acc']*100:>7.2f}% "
+            f"| {m['group_2_acc']*100:>7.2f}% "
+            f"| {m['group_3_acc']*100:>7.2f}% |"
         )
 
     with open("results/group_dro_results.json", "w") as f:
-        json.dump(sweep_summary, f, indent=4)
+        json.dump(summary_results, f, indent=4)
 
 if __name__ == "__main__":
     main()
