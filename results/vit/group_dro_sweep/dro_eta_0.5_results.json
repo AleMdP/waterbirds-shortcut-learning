@@ -1,0 +1,28 @@
+{
+    "avg_acc": 0.852260947227478,
+    "worst_group_acc": 0.8332594037055969,
+    "worst_group_id": 1,
+    "group_0_acc": 0.842572033405304,
+    "group_0_count": 2255,
+    "group_1_acc": 0.8332594037055969,
+    "group_1_count": 2255,
+    "group_2_acc": 0.8909657597541809,
+    "group_2_count": 642,
+    "group_3_acc": 0.914330244064331,
+    "group_3_count": 642,
+    "group_0_loss": 0.4094584286212921,
+    "group_1_loss": 0.40958327054977417,
+    "group_2_loss": 0.3033383786678314,
+    "group_3_loss": 0.3032485246658325,
+    "hyperparameters": {
+        "method": "group_dro",
+        "batch_size": 32,
+        "epochs": 3,
+        "learning_rate": 0.0001,
+        "weight_decay": 0.0001,
+        "eta": 0.5,
+        "adj_coeff": 0.0,
+        "balanced_sampler": true,
+        "exp_name": "vit/group_dro_sweep/dro_eta_0.5"
+    }
+}
