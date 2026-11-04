@@ -192,7 +192,7 @@ def run_experiment(
     test_metrics = evaluate(model, test_loader, device)
     test_metrics["hyperparameters"] = {
         "method": method, "batch_size": batch_size, "epochs": epochs,
-        "lr": lr, "weight_decay": weight_decay, "eta": eta,
+        "learning_rate": learning_rate, "weight_decay": weight_decay, "eta": eta,
         "adj_coeff": adj_coeff, "balanced_sampler": balanced_sampler, "exp_name": tag
     }
 

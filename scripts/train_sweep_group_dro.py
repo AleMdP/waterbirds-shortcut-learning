@@ -40,7 +40,6 @@ def main():
             data_bundle=data_bundle,
             device=device,
             epochs=3,
-            lr=1e-4,
             **exp
         )
         summary_results[exp["exp_name"]] = metrics
