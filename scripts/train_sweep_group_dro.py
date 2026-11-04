@@ -1,4 +1,3 @@
-# scripts/train_all.py
 import os
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
@@ -34,12 +33,15 @@ def main():
         {"method": "group_dro", "balanced_sampler": True, "eta": 0.01,  "weight_decay": 1e-3, "adj_coeff": 1.0, "learning_rate": 1e-3, "exp_name": "dro_adj_1_wd_1e-3_lr_1e-3"},
     ]
 
+    model = "transformer"  # Use Vision Transformer for this ablation study
+
     summary_results = {}
     for exp in experiments:
         metrics = run_experiment(
             data_bundle=data_bundle,
             device=device,
             epochs=3,
+            model=model,
             **exp
         )
         summary_results[exp["exp_name"]] = metrics
