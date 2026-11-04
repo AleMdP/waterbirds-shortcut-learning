@@ -7,7 +7,7 @@ class GroupDROLoss(nn.Module):
     Adapted from Sagawa et al. (2020), "Distributionally Robust Neural Networks for Group Shifts".
     q is the vector of group weights, updated dynamically during training.
     """
-    def __init__(self, num_groups=4, eta=0.01, device="cuda"):
+    def __init__(self, num_groups=4, eta=0.01, group_counts=None, adj_coeff=0.0, device="cuda"):
         super().__init__()
         self.num_groups = num_groups
         self.eta = eta
@@ -15,6 +15,13 @@ class GroupDROLoss(nn.Module):
 
         # Initialize uniform group weights q = [0.25, 0.25, 0.25, 0.25]
         self.q = torch.ones(num_groups, device=device) / num_groups
+
+        # Optional generalization adjustment C / sqrt(n_g) from Sagawa et al. (Eq. 3)
+        if group_counts is not None and adj_coeff > 0.0:
+            counts = group_counts.to(device).float()
+            self.adj = adj_coeff / torch.sqrt(counts)
+        else:
+            self.adj = torch.zeros(num_groups, device=device)
 
     def forward(self, outputs, targets, groups):
         # 1. Per-sample cross-entropy loss (shape: [batch_size])
@@ -29,7 +36,8 @@ class GroupDROLoss(nn.Module):
                 
         # 3. Update group weights q dynamically (detached from autograd)
         with torch.no_grad():
-            self.q = self.q * torch.exp(self.eta * group_losses.detach())
+            adjusted_losses = group_losses.detach() + self.adj
+            self.q = self.q * torch.exp(self.eta * adjusted_losses)
             q_sum = self.q.sum()
             if q_sum > 0:
                 self.q = self.q / q_sum
