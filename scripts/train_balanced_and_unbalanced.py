@@ -1,49 +1,52 @@
 import os
-import sys
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+
 import json
-import subprocess
+import torch
+from train import prepare_data_bundle, run_experiment
 
 def main():
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Initializing shared GPU & Data Bundle once on {device}...")
+    data_bundle = prepare_data_bundle("data/waterbird_complete95_forest2water2")
+
     # Define the 3x2 ablation matrix: (method, use_balanced_sampler, exp_name)
     experiments = [
         # 1. Standard Unbalanced DataLoader (Shuffle=True)
-        {"method": "erm",       "balanced_sampler": False, "exp_name": "erm_unbalanced"},
-        {"method": "reweight",  "balanced_sampler": False, "exp_name": "reweight_unbalanced"},
-        {"method": "group_dro", "balanced_sampler": False, "exp_name": "group_dro_unbalanced"},
+        {"method": "erm",       "balanced_sampler": False, "exp_name": "vit/erm_unbalanced"},
+        {"method": "reweight",  "balanced_sampler": False, "exp_name": "vit/reweight_unbalanced"},
+        {"method": "group_dro", "balanced_sampler": False, "exp_name": "vit/group_dro_unbalanced"},
         
         # 2. Balanced DataLoader (WeightedRandomSampler)
-        {"method": "erm",       "balanced_sampler": True,  "exp_name": "erm_balanced"},
-        {"method": "reweight",  "balanced_sampler": True,  "exp_name": "reweight_balanced"},
-        {"method": "group_dro", "balanced_sampler": True,  "exp_name": "group_dro_balanced"},
+        {"method": "erm",       "balanced_sampler": True,  "exp_name": "vit/erm_balanced"},
+        {"method": "reweight",  "balanced_sampler": True,  "exp_name": "vit/reweight_balanced"},
+        {"method": "group_dro", "balanced_sampler": True,  "exp_name": "vit/group_dro_balanced"},
     ]
 
     # Shared baseline hyperparameters (matching Partner B's 3-epoch benchmark)
     epochs = 3
-    lr = 1e-4
+    learning_rate = 1e-4
     weight_decay = 1e-4
     eta = 0.01
+    model = "transformer"  # Use Vision Transformer for this ablation study
 
-    train_script = os.path.join(os.path.dirname(__file__), "train.py")
-
+    summary_results = {}
     for idx, exp in enumerate(experiments, 1):
         print("\n" + "=" * 70)
         print(f"RUNNING EXPERIMENT [{idx}/{len(experiments)}]: {exp['exp_name']}")
         print("=" * 70)
 
-        cmd = [
-            sys.executable, train_script,
-            "--method", exp["method"],
-            "--epochs", str(epochs),
-            "--lr", str(lr),
-            "--weight_decay", str(weight_decay),
-            "--eta", str(eta),
-            "--exp_name", exp["exp_name"]
-        ]
-        if exp["balanced_sampler"]:
-            cmd.append("--balanced_sampler")
-
-        # Run scripts/train.py and stream output directly to terminal
-        subprocess.run(cmd, check=True)
+        metrics = run_experiment(
+            data_bundle=data_bundle,
+            device=device,
+            epochs=epochs,
+            learning_rate=learning_rate,
+            weight_decay=weight_decay,
+            eta=eta,
+            model=model,
+            **exp
+        )
+        summary_results[exp["exp_name"]] = metrics
 
     # Compile and print a clean summary table from all generated JSON files
     print("\n" + "=" * 85)
@@ -72,9 +75,9 @@ def main():
             )
             print(row)
 
-    with open("results/balanced_and_unbalanced_summary.json", "w") as f:
+    with open("results/vit/balanced_and_unbalanced_summary.json", "w") as f:
         json.dump(summary_data, f, indent=4)
-    print("\nSaved combined metrics to results/balanced_and_unbalanced_summary.json")
+    print("\nSaved combined metrics to results/vit/balanced_and_unbalanced_summary.json")
 
 if __name__ == "__main__":
     main()

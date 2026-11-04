@@ -12,7 +12,7 @@ from torch.utils.data import DataLoader, WeightedRandomSampler
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from src.dataset import WaterbirdsDataset, get_waterbirds_transforms
-from src.models import get_waterbirds_model
+import src.models as models
 from src.utils import GroupLogger
 from src.loss import GroupDROLoss
 
@@ -121,6 +121,7 @@ def run_experiment(
     exp_name=None,
     data_bundle=None,
     device=None,
+    model="resnet50"
 ):
     """
     Directly callable Python function to run a single experiment without spawning a subprocess.
@@ -148,7 +149,14 @@ def run_experiment(
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=4, pin_memory=True)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=4, pin_memory=True)
 
-    model = get_waterbirds_model(num_classes=2, pretrained=True).to(device)
+    # Initialize model and optimizer
+    if model == "resnet50":
+        model = models.get_waterbirds_model(num_classes=2, pretrained=True).to(device)
+    elif model == "transformer":
+        model = models.get_transformer_model(num_classes=2, pretrained=True).to(device)
+    else:
+        raise ValueError("Invalid model specified")
+
     optimizer = optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9, weight_decay=weight_decay)
 
     dro_criterion = None
