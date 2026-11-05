@@ -10,21 +10,23 @@ def main():
     print(f"Initializing shared GPU & Data Bundle once on {device}...")
     data_bundle = prepare_data_bundle("data/waterbird_complete95_forest2water2")
 
+    experiment_prefix = "vit/" # "vit/"
+
     # Define the 3x2 ablation matrix: (method, use_balanced_sampler, exp_name)
     experiments = [
         # 1. Standard Unbalanced DataLoader (Shuffle=True)
-        {"method": "erm",       "balanced_sampler": False, "exp_name": "vit/erm_unbalanced"},
-        {"method": "reweight",  "balanced_sampler": False, "exp_name": "vit/reweight_unbalanced"},
-        {"method": "group_dro", "balanced_sampler": False, "exp_name": "vit/group_dro_unbalanced"},
+        {"method": "erm",       "balanced_sampler": False, "exp_name": f"{experiment_prefix}erm_unbalanced"},
+        {"method": "reweight",  "balanced_sampler": False, "exp_name": f"{experiment_prefix}reweight_unbalanced"},
+        {"method": "group_dro", "balanced_sampler": False, "exp_name": f"{experiment_prefix}group_dro_unbalanced"},
         
         # 2. Balanced DataLoader (WeightedRandomSampler)
-        {"method": "erm",       "balanced_sampler": True,  "exp_name": "vit/erm_balanced"},
-        {"method": "reweight",  "balanced_sampler": True,  "exp_name": "vit/reweight_balanced"},
-        {"method": "group_dro", "balanced_sampler": True,  "exp_name": "vit/group_dro_balanced"},
+        {"method": "erm",       "balanced_sampler": True,  "exp_name": f"{experiment_prefix}erm_balanced"},
+        {"method": "reweight",  "balanced_sampler": True,  "exp_name": f"{experiment_prefix}reweight_balanced"},
+        {"method": "group_dro", "balanced_sampler": True,  "exp_name": f"{experiment_prefix}group_dro_balanced"},
     ]
 
-    # Shared baseline hyperparameters (matching Partner B's 3-epoch benchmark)
-    epochs = 3
+    # Shared baseline hyperparameters 
+    epochs = 5
     learning_rate = 1e-4
     weight_decay = 1e-4
     eta = 0.01
@@ -75,9 +77,9 @@ def main():
             )
             print(row)
 
-    with open("results/vit/balanced_and_unbalanced_summary.json", "w") as f:
+    with open(f"results/{experiment_prefix}balanced_and_unbalanced_summary.json", "w") as f:
         json.dump(summary_data, f, indent=4)
-    print("\nSaved combined metrics to results/vit/balanced_and_unbalanced_summary.json")
+    print(f"\nSaved combined metrics to results/{experiment_prefix}balanced_and_unbalanced_summary.json")
 
 if __name__ == "__main__":
     main()
