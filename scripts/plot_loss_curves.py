@@ -3,11 +3,28 @@ import json
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-def plot_curves(history_path, title, output_filename):
-    if not os.path.exists(history_path):
-        print(f"Skipping {title}: {history_path} not found.")
+def find_history_file(filename):
+    """Busca el archivo de historial en la raíz o en subcarpetas comunes de results."""
+    candidate_paths = [
+        os.path.join("results", filename),
+        os.path.join("results/vit", filename),
+        os.path.join("results_3_epochs", filename),
+        os.path.join("results_3_epochs/vit", filename),
+        filename
+    ]
+    for path in candidate_paths:
+        if os.path.exists(path):
+            return path
+    return None
+
+def plot_curves(filename, title, output_filename):
+    history_path = find_history_file(filename)
+    
+    if not history_path:
+        print(f"Skipping {title}: '{filename}' not found in results directory or subdirectories.")
         return
 
+    print(f"Loading {title} from: {history_path}")
     with open(history_path, "r") as f:
         history = json.load(f)
 
@@ -41,8 +58,8 @@ def plot_curves(history_path, title, output_filename):
     print(f"Saved figure to: {out_path}")
 
 def main():
-    plot_curves("results/erm_history.json", "Standard ERM", "erm_per_group_loss_curves.png")
-    plot_curves("results/reweighted_history.json", "Group-Reweighted", "reweighted_per_group_loss_curves.png")
+    plot_curves("erm_history.json", "Standard ERM", "erm_per_group_loss_curves.png")
+    plot_curves("reweighted_history.json", "Group-Reweighted", "reweighted_per_group_loss_curves.png")
 
 if __name__ == "__main__":
     main()
