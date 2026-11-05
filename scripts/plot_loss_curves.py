@@ -3,32 +3,45 @@ import json
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-def find_history_file(filename):
-    """Busca el archivo de historial en la raíz o en subcarpetas comunes de results."""
-    candidate_paths = [
-        os.path.join("results", filename),
-        os.path.join("results/vit", filename),
-        os.path.join("results_3_epochs", filename),
-        os.path.join("results_3_epochs/vit", filename),
-        filename
-    ]
-    for path in candidate_paths:
-        if os.path.exists(path):
-            return path
+def find_matching_file(keyword):
+    """Searches results/ recursively for any JSON file matching the keyword."""
+    for root, _, files in os.walk("results"):
+        for file in files:
+            if file.endswith(".json") and keyword in file and "summary" not in file:
+                return os.path.join(root, file)
+    
+    # Also check results_3_epochs if present
+    if os.path.exists("results_3_epochs"):
+        for root, _, files in os.walk("results_3_epochs"):
+            for file in files:
+                if file.endswith(".json") and keyword in file and "summary" not in file:
+                    return os.path.join(root, file)
     return None
 
-def plot_curves(filename, title, output_filename):
-    history_path = find_history_file(filename)
+def plot_curves(keyword, title, output_filename):
+    history_path = find_matching_file(keyword)
     
     if not history_path:
-        print(f"Skipping {title}: '{filename}' not found in results directory or subdirectories.")
+        print(f"Skipping {title}: No JSON file containing '{keyword}' found in results/.")
         return
 
     print(f"Loading {title} from: {history_path}")
     with open(history_path, "r") as f:
-        history = json.load(f)
+        data = json.load(f)
 
-    epochs = [entry["epoch"] for entry in history]
+    # Handle both list of epoch histories or dict containing metrics/history
+    if isinstance(data, dict) and "history" in data:
+        history = data["history"]
+    elif isinstance(data, list):
+        history = data
+    elif isinstance(data, dict) and any("group_0_loss" in k for k in data.keys()):
+        # Single final evaluation result dictionary
+        history = [data]
+    else:
+        print(f"Skipping {title}: Structure of {history_path} unrecognized.")
+        return
+
+    epochs = [entry.get("epoch", idx + 1) for idx, entry in enumerate(history)]
     
     group_labels = {
         0: "Group 0: Landbird / Land (Majority)",
@@ -43,7 +56,7 @@ def plot_curves(filename, title, output_filename):
     sns.set_theme(style="whitegrid")
 
     for g in range(4):
-        losses = [entry[f"group_{g}_loss"] for entry in history]
+        losses = [entry.get(f"group_{g}_loss", 0.0) for entry in history]
         plt.plot(epochs, losses, marker="o", linewidth=2.5, label=group_labels[g], color=colors[g])
 
     plt.title(f"Per-Group Loss Convergence ({title})", fontsize=14, fontweight="bold")
@@ -55,11 +68,11 @@ def plot_curves(filename, title, output_filename):
     os.makedirs("reports/figures", exist_ok=True)
     out_path = os.path.join("reports/figures", output_filename)
     plt.savefig(out_path, dpi=300)
-    print(f"Saved figure to: {out_path}")
+    print(f"Successfully generated figure: {out_path}")
 
 def main():
-    plot_curves("erm_history.json", "Standard ERM", "erm_per_group_loss_curves.png")
-    plot_curves("reweighted_history.json", "Group-Reweighted", "reweighted_per_group_loss_curves.png")
+    plot_curves("erm", "Standard ERM", "erm_per_group_loss_curves.png")
+    plot_curves("reweight", "Group-Reweighted", "reweighted_per_group_loss_curves.png")
 
 if __name__ == "__main__":
     main()
