@@ -1,3 +1,7 @@
+""" 
+PyTorch re-implementation of the group DRO update rule of Sagawa et al. (2020), Algorithm 1. Official code: github.com/kohpangwei/group_DRO.
+"""
+
 import torch
 import torch.nn as nn
 

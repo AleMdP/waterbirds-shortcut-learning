@@ -52,8 +52,7 @@ Python 3.10+ is recommended.
 ```bash
 git clone https://github.com/AleMdP/waterbirds-shortcut-learning.git
 cd waterbirds-shortcut-learning
-python -m venv venv
-source venv/bin/activate          # Windows: venv\Scripts\activate
+conda activate waterbirds (create it before)
 pip install -r requirements.txt
 ```
 
@@ -63,30 +62,15 @@ The first run downloads the ImageNet-pretrained weights of ResNet-50 and ViT-B/1
 ### GPU selection
 
 The training and evaluation scripts (`train.py`, `train_balanced_and_unbalanced.py`, `train_sweep_group_dro.py`, `eval.py`)
-set `CUDA_VISIBLE_DEVICES="1"` by default, i.e. GPU 1 of the Gorina4 server (Tesla P100), **so nothing has to be configured there**.
-The default can be overridden from the shell, for example on a machine with a single GPU:
+set `os.environ["CUDA_VISIBLE_DEVICES"] = "1"`.  
 
-```bash
-CUDA_VISIBLE_DEVICES=0 python scripts/train.py ...
-```
-
-If no GPU is visible the code prints a warning and runs on the CPU (very slow).
+If no GPU is visible the code prints a warning and runs on the CPU.  
 The analysis scripts (`select_by_val.py`, `plot_*.py`, `aggregate_seeds.py`) do not need a GPU.
 
 ## 3. Data
 
 Download the Waterbirds dataset released by the authors of Group DRO
-(https://github.com/kohpangwei/group_DRO) and extract it into `data/`:
-
-```bash
-mkdir -p data && cd data
-wget https://nlp.stanford.edu/data/dro/waterbird_complete95_forest2water2.tar.gz
-tar -xzf waterbird_complete95_forest2water2.tar.gz
-cd ..
-```
-
-(If the link has changed, use the one in the README of the authors' repository.)
-Check that `data/waterbird_complete95_forest2water2/metadata.csv` exists. All scripts use this path by default.
+(https://github.com/kohpangwei/group_DRO) and extract it into `data/` (we had some problems installing the dataset, so if you need it, tell us).  
 
 **Groups.** `group = y * 2 + place`, where `y` = 0 landbird / 1 waterbird and `place` = 0 land / 1 water:
 
@@ -97,7 +81,7 @@ Check that `data/waterbird_complete95_forest2water2/metadata.csv` exists. All sc
 | G2 | Waterbird / Land  | minority | 56   | 133 | 642  |
 | G3 | Waterbird / Water | majority | 1057 | 133 | 642  |
 
-(`scripts/eda.py` prints the exact counts of your copy of the dataset.)
+(`scripts/eda.py` prints the exact counts.)
 
 **Metrics.**
 * *Worst-group accuracy*: minimum over G0..G3 of the test accuracy.
@@ -143,8 +127,8 @@ Outputs per run: `<method>_<sampler>_results.json` (test metrics, plus `best_epo
 * one run with lr = 1e-3, wd = 1e-3, C = 1
 
 ```bash
-python scripts/train_sweep_group_dro.py --model resnet50      # -> results/group_dro_sweep/
-python scripts/train_sweep_group_dro.py --model transformer   # -> results/vit/group_dro_sweep/
+python scripts/train_sweep_group_dro.py --model resnet50         # -> results/group_dro_sweep/
+python scripts/train_sweep_group_dro.py --model transformer      # -> results/vit/group_dro_sweep/
 ```
 One `dro_*_results.json` / `dro_*_history.json` per run and `group_dro_results.json` (all runs). The table printed at the end is **ranked by validation worst-group accuracy**.
 
@@ -194,10 +178,12 @@ python scripts/aggregate_seeds.py --model resnet50 --exclude_original    # only 
 ### 4.8 Figures
 
 ```bash
-python scripts/plot_tradeoff.py                      # reports/figures/tradeoff_avg_vs_worst.png (both backbones)
-python scripts/plot_results.py --model resnet50      # <tag>_ablation_comparison.png + group_dro_sweep_top5_<tag>.png
+python scripts/plot_tradeoff.py                                  # reports/figures/tradeoff_avg_vs_worst.png (both backbones)
+python scripts/plot_results.py --model resnet50      
+# <tag>_ablation_comparison.png + group_dro_sweep_top5_<tag>.png
 python scripts/plot_results.py --model transformer
-python scripts/plot_loss_curves.py --model resnet50  # <tag>_<method>_<sampler>_loss_curves.png (6 figures per backbone)
+python scripts/plot_loss_curves.py --model resnet50  
+# <tag>_<method>_<sampler>_loss_curves.png (6 figures per backbone)
 python scripts/plot_loss_curves.py --model transformer
 ```
 `<tag>` is `resnet50` or `vit`. Figures are saved in `reports/figures/`.

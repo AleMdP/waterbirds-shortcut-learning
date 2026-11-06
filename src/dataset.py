@@ -9,7 +9,7 @@ class WaterbirdsDataset(Dataset):
     def __init__(self, metadata_path, data_dir, split='train', transform=None):
         """
         Waterbirds PyTorch Dataset based on Sagawa et al. (2020)
-        splits: 'train', 'val' (0), 'test' (1)
+        splits: 'train' (0), 'val' (1), 'test' (2)
         """
         self.data_dir = data_dir
         self.transform = transform
