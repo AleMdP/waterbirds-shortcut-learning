@@ -13,7 +13,7 @@ from torch.utils.data import DataLoader
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from src.dataset import WaterbirdsDataset, get_waterbirds_transforms
-from src.models import get_waterbirds_model
+import src.models as models
 from src.utils import GroupLogger
 
 def main():
