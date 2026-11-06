@@ -24,11 +24,11 @@ def plot_vit_ablation(summary_path):
         "vit/group_dro_balanced": "Group DRO (Balanced)"
     }
 
-    for exp_key, labels in name_map.items():
+    for exp_key, label in name_map.items():
         if exp_key in data:
             metrics = data[exp_key]
-            plot_data.append({"Method": labels, "Metric": "Average Accuracy", "Accuracy": metrics["avg_acc"] * 100})
-            plot_data.append({"Method": labels, "Metric": "Worst-Group Accuracy", "Accuracy": metrics["worst_group_acc"] * 100})
+            plot_data.append({"Method": label, "Metric": "Average Accuracy", "Accuracy": metrics["avg_acc"] * 100})
+            plot_data.append({"Method": label, "Metric": "Worst-Group Accuracy", "Accuracy": metrics["worst_group_acc"] * 100})
 
     df = pd.DataFrame(plot_data)
 
@@ -43,7 +43,7 @@ def plot_vit_ablation(summary_path):
         palette=["#2b5c8f", "#d95f02"]
     )
     
-    plt.title("Vision Transformer (ViT): Sampler & Method Mitigation Comparison", fontsize=14, fontweight="bold")
+    plt.title("Vision Transformer (ViT): Sampler & Method Mitigation Comparison (5 Epochs)", fontsize=14, fontweight="bold")
     plt.ylabel("Accuracy (%)", fontsize=12)
     plt.ylim(0, 105)
     plt.xticks(rotation=20, ha="right")
@@ -62,15 +62,44 @@ def plot_vit_ablation(summary_path):
     print(f"Saved ViT ablation plot to: {output_path}")
 
 
-def plot_dro_sweep_top_models(sweep1_file, sweep2_file):
-    """Plots a comparison of key Group DRO hyperparameter runs to highlight optimal setups vs failures."""
-    plot_runs = {
-        "Best Setup (adj=1, wd=1e-3, lr=1e-3)": {"avg": 91.61, "worst": 86.29},
-        "Optimal Adj (adj=1, wd=1e-2)": {"avg": 87.00, "worst": 85.76},
-        "Base DRO (eta=0.01)": {"avg": 85.64, "worst": 81.46},
-        "High Step Size (eta=0.5)": {"avg": 75.11, "worst": 66.34},
-        "Unstable Step Size (eta=1.0)": {"avg": 55.13, "worst": 37.83},
-    }
+def plot_dro_sweep_top_models(sweep_json_path):
+    """Dynamically parses and plots Group DRO hyperparameter runs from sweep JSON results."""
+    if not os.path.exists(sweep_json_path):
+        print(f"[Warning] Sweep summary file {sweep_json_path} not found. Using fallback values.")
+        plot_runs = {
+            "Best Setup (adj=1, wd=1e-3, lr=1e-3)": {"avg": 91.61, "worst": 86.29},
+            "Optimal Adj (adj=1, wd=1e-2)": {"avg": 87.00, "worst": 85.76},
+            "Base DRO (eta=0.01)": {"avg": 85.64, "worst": 81.46},
+            "High Step Size (eta=0.5)": {"avg": 75.11, "worst": 66.34},
+            "Unstable Step Size (eta=1.0)": {"avg": 55.13, "worst": 37.83},
+        }
+    else:
+        with open(sweep_json_path, "r") as f:
+            data = json.load(f)
+        
+        # Select key illustrative configurations from the sweep
+        key_configs = {
+            "vit/group_dro_sweep/dro_adj_1_wd_1e-3_lr_1e-3": "Optimal Setup (adj=1, wd=1e-3, lr=1e-3)",
+            "vit/group_dro_sweep/dro_eta_0.01": "Base DRO (eta=0.01, wd=1e-4)",
+            "vit/group_dro_sweep/dro_eta_0.05": "Step Size (eta=0.05)",
+            "vit/group_dro_sweep/dro_eta_0.5": "High Step Size (eta=0.5)",
+            "vit/group_dro_sweep/dro_eta_1.0": "Unstable Step Size (eta=1.0)"
+        }
+        
+        plot_runs = {}
+        for key, display_name in key_configs.items():
+            if key in data:
+                m = data[key]
+                plot_runs[display_name] = {
+                    "avg": m["avg_acc"] * 100,
+                    "worst": m["worst_group_acc"] * 100
+                }
+            elif os.path.basename(key) in data:
+                m = data[os.path.basename(key)]
+                plot_runs[display_name] = {
+                    "avg": m["avg_acc"] * 100,
+                    "worst": m["worst_group_acc"] * 100
+                }
 
     plot_data = []
     for run_name, metrics in plot_runs.items():
@@ -90,7 +119,7 @@ def plot_dro_sweep_top_models(sweep1_file, sweep2_file):
         palette=["#2166ac", "#b2182b"]
     )
 
-    plt.title("Group DRO Hyperparameter Sweep Sensitivity Analysis", fontsize=14, fontweight="bold")
+    plt.title("Group DRO Hyperparameter Sweep Sensitivity Analysis (5 Epochs)", fontsize=14, fontweight="bold")
     plt.ylabel("Accuracy (%)", fontsize=12)
     plt.ylim(0, 105)
     plt.xticks(rotation=20, ha="right")
@@ -112,12 +141,13 @@ def plot_dro_sweep_top_models(sweep1_file, sweep2_file):
 def main():
     os.makedirs("reports/figures", exist_ok=True)
     
-    # 1. Generate ViT Sampler Ablation Plot
+    # 1. Generate ViT Sampler Ablation Plot (Using 5-epoch JSON)
     summary_path = "results/vit/balanced_and_unbalanced_summary.json"
     plot_vit_ablation(summary_path)
 
     # 2. Generate Group DRO Sweep Sensitivity Plot
-    plot_dro_sweep_top_models("results/dro_sweep1.txt", "results/dro_sweep2.txt")
+    sweep_json_path = "results/vit/group_dro_sweep/group_dro_results.json"
+    plot_dro_sweep_top_models(sweep_json_path)
 
 
 if __name__ == "__main__":
