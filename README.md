@@ -39,7 +39,7 @@ waterbirds-shortcut-learning/
 │   ├── plot_tradeoff.py          # average vs worst-group scatter (all runs)
 │   └── plot_loss_curves.py       # per-group training-loss curves
 ├── results/                      # JSON outputs (ResNet-50 in results/, ViT in results/vit/)
-├── results_3_epochs/             # early preliminary runs (3 epochs, ResNet-50). Not used in the report
+├── legacy/                       # obsolete scripts and early 3-epoch runs (legacy/results_3_epochs/). Not used in the report
 ├── reports/                      # report PDF and figures
 ├── requirements.txt
 └── README.md
@@ -52,7 +52,8 @@ Python 3.10+ is recommended.
 ```bash
 git clone https://github.com/AleMdP/waterbirds-shortcut-learning.git
 cd waterbirds-shortcut-learning
-conda activate waterbirds (create it before)
+conda create -n waterbirds python=3.11 -y     # only the first time
+conda activate waterbirds
 pip install -r requirements.txt
 ```
 
