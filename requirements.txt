@@ -1,0 +1,7 @@
+torch
+torchvision>=0.13
+pandas
+numpy
+pillow
+matplotlib
+seaborn

@@ -1,78 +1,64 @@
+"""Per-group TRAINING loss per epoch, one figure per run.
+ 
+    python scripts/plot_loss_curves.py --model resnet50
+    python scripts/plot_loss_curves.py --model transformer
+ 
+Output: reports/figures/<resnet50|vit>_<method>_<sampler>_loss_curves.png
+Files are read from explicit paths (no fuzzy matching), so every figure is tied to one run.
+"""
+
 import os
 import json
+import argparse
 import matplotlib.pyplot as plt
 import seaborn as sns
+from result_utils import CONFIGS, MODELS, MODEL_LABEL, MODEL_TAG, results_dir
 
-def find_matching_file(keyword):
-    """Searches results/ recursively for any JSON file matching the keyword."""
-    for root, _, files in os.walk("results"):
-        for file in files:
-            if file.endswith(".json") and keyword in file and "summary" not in file:
-                return os.path.join(root, file)
-    
-    # Also check results_3_epochs if present
-    if os.path.exists("results_3_epochs"):
-        for root, _, files in os.walk("results_3_epochs"):
-            for file in files:
-                if file.endswith(".json") and keyword in file and "summary" not in file:
-                    return os.path.join(root, file)
-    return None
-
-def plot_curves(keyword, title, output_filename):
-    history_path = find_matching_file(keyword)
-    
-    if not history_path:
-        print(f"Skipping {title}: No JSON file containing '{keyword}' found in results/.")
+GROUP_LABELS = {
+    0: "Group 0: Landbird / Land (Majority)",
+    1: "Group 1: Landbird / Water (Minority)",
+    2: "Group 2: Waterbird / Land (Minority)",
+    3: "Group 3: Waterbird / Water (Majority)",
+}
+COLORS = ["#2b5c8f", "#d95f02", "#e7298a", "#1b9e77"]
+NICE = {"erm": "ERM", "reweight": "Group-reweighted", "group_dro": "Group DRO"}
+ 
+ 
+def plot_curves(history_path, title, out_path):
+    if not os.path.exists(history_path):
+        print(f"[skip] {history_path} not found")
         return
-
-    print(f"Loading {title} from: {history_path}")
-    with open(history_path, "r") as f:
-        data = json.load(f)
-
-    # Handle both list of epoch histories or dict containing metrics/history
-    if isinstance(data, dict) and "history" in data:
-        history = data["history"]
-    elif isinstance(data, list):
-        history = data
-    elif isinstance(data, dict) and any("group_0_loss" in k for k in data.keys()):
-        # Single final evaluation result dictionary
-        history = [data]
-    else:
-        print(f"Skipping {title}: Structure of {history_path} unrecognized.")
-        return
-
-    epochs = [entry.get("epoch", idx + 1) for idx, entry in enumerate(history)]
-    
-    group_labels = {
-        0: "Group 0: Landbird / Land (Majority)",
-        1: "Group 1: Landbird / Water (Minority)",
-        2: "Group 2: Waterbird / Land (Minority)",
-        3: "Group 3: Waterbird / Water (Majority)"
-    }
-    
-    colors = ["#2b5c8f", "#d95f02", "#e7298a", "#1b9e77"]
-
+    with open(history_path) as f:
+        history = json.load(f)
+    epochs = [e.get("epoch", i + 1) for i, e in enumerate(history)]
+ 
     plt.figure(figsize=(9, 6))
     sns.set_theme(style="whitegrid")
-
     for g in range(4):
-        losses = [entry.get(f"group_{g}_loss", 0.0) for entry in history]
-        plt.plot(epochs, losses, marker="o", linewidth=2.5, label=group_labels[g], color=colors[g])
-
-    plt.title(f"Per-Group Loss Convergence ({title})", fontsize=14, fontweight="bold")
+        plt.plot(epochs, [e[f"group_{g}_loss"] for e in history], marker="o", linewidth=2.5,
+                 label=GROUP_LABELS[g], color=COLORS[g])
+    plt.title(f"Per-Group Training Loss ({title})", fontsize=14, fontweight="bold")
     plt.xlabel("Epoch", fontsize=12)
-    plt.ylabel("Cross-Entropy Loss", fontsize=12)
-    plt.legend(loc="upper right")
+    plt.ylabel("Cross-Entropy Loss (unweighted, training mode)", fontsize=12)
+    plt.xticks(epochs)
+    plt.legend(loc="best")
     plt.tight_layout()
-
-    os.makedirs("reports/figures", exist_ok=True)
-    out_path = os.path.join("reports/figures", output_filename)
+    os.makedirs(os.path.dirname(out_path), exist_ok=True)
     plt.savefig(out_path, dpi=300)
-    print(f"Successfully generated figure: {out_path}")
-
+    plt.close()
+    print(f"Saved {out_path}")
+ 
+ 
 def main():
-    plot_curves("erm", "Standard ERM", "erm_per_group_loss_curves.png")
-    plot_curves("reweight", "Group-Reweighted", "reweighted_per_group_loss_curves.png")
-
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model", choices=MODELS, required=True)
+    args = parser.parse_args()
+    for cfg in CONFIGS:
+        method, sampler = cfg.rsplit("_", 1)
+        plot_curves(os.path.join(results_dir(args.model), f"{cfg}_history.json"),
+                    f"{MODEL_LABEL[args.model]}, {NICE[method]}, {sampler} loader",
+                    f"reports/figures/{MODEL_TAG[args.model]}_{cfg}_loss_curves.png")
+ 
+ 
 if __name__ == "__main__":
     main()
