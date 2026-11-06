@@ -1,8 +1,20 @@
+"""Bar plots.
+ 
+    python scripts/plot_results.py --model resnet50
+    python scripts/plot_results.py --model transformer
+ 
+1) <tag>_ablation_comparison.png : 3 methods x 2 samplers (avg vs worst-group, test).
+2) group_dro_sweep_top5_<tag>.png: 5 Group DRO sweep runs with the best VALIDATION worst-group
+   accuracy (selection never looks at the test set).
+"""
+
 import os
 import json
+import argparse
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
+from result_utils import (CONFIGS, MODELS, MODEL_LABEL, MODEL_TAG, results_dir, sweep_dir, load_runs, rank_by_validation)
 
 def plot_vit_ablation(summary_path):
     """Plots the 3x2 ablation matrix: (ERM, Reweight, Group DRO) x (Unbalanced vs Balanced Sampler)"""
